@@ -9,7 +9,7 @@ const port = process.env.PORT || 10000;
 // Initialize EmailJS with your public key
 emailjs.init({
   publicKey: process.env.EMAILJS_PUBLIC_KEY,
-  privateKey: process.env.EMAILJS_PUBLIC_KEY // For Node.js, we use the public key as private key
+  privateKey: process.env.EMAILJS_PRIVATE_KEY // Use private key for server-side
 });
 
 // Log environment variables (excluding sensitive values)
