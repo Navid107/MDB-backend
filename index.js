@@ -72,13 +72,19 @@ app.post('/api/send-email', async (req, res) => {
     console.error('Email sending failed. Full error:', {
       message: error.message,
       stack: error.stack,
-      name: error.name
+      name: error.name,
+      code: error.code,
+      response: error.response,
+      data: error.data
     });
     res.status(500).json({ 
       success: false, 
       error: error.message,
       details: {
         name: error.name,
+        code: error.code,
+        response: error.response,
+        data: error.data,
         env: {
           hasPublicKey: !!process.env.EMAILJS_PUBLIC_KEY,
           hasServiceId: !!process.env.EMAILJS_SERVICE_ID,
