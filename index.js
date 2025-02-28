@@ -4,12 +4,11 @@ const cors = require('cors');
 const emailjs = require('@emailjs/nodejs');
 
 const app = express();
-const port = process.env.PORT || 3001;
+const port = process.env.PORT || 10000; // Updated to use Render's default port as fallback
 
 // Initialize EmailJS with your public key
 emailjs.init({
   publicKey: process.env.EMAILJS_PUBLIC_KEY,
-  privateKey: process.env.EMAILJS_PRIVATE_KEY // Optional for added security
 });
 
 // Middleware
@@ -31,12 +30,20 @@ app.post('/api/send-email', async (req, res) => {
       reply_to: email || process.env.EMAILJS_DEFAULT_REPLY_TO,
     };
 
+    console.log('Attempting to send email with params:', templateParams);
+    console.log('Using EmailJS config:', {
+      serviceId: process.env.EMAILJS_SERVICE_ID,
+      templateId: process.env.EMAILJS_TEMPLATE_ID,
+      publicKey: process.env.EMAILJS_PUBLIC_KEY ? 'Set' : 'Not Set'
+    });
+
     const response = await emailjs.send(
       process.env.EMAILJS_SERVICE_ID,
       process.env.EMAILJS_TEMPLATE_ID,
       templateParams
     );
 
+    console.log('Email sent successfully:', response);
     res.json({ success: true, response });
   } catch (error) {
     console.error('Email sending failed:', error);
