@@ -41,7 +41,8 @@ app.post('/api/send-email', async (req, res) => {
     console.log('Using EmailJS config:', {
       serviceId: process.env.EMAILJS_SERVICE_ID,
       templateId: process.env.EMAILJS_TEMPLATE_ID,
-      publicKey: process.env.EMAILJS_PUBLIC_KEY ? 'Set' : 'Not Set'
+      publicKey: process.env.EMAILJS_PUBLIC_KEY ? 'Set' : 'Not Set',
+      privateKey: process.env.EMAILJS_PRIVATE_KEY ? 'Set' : 'Not Set'
     });
 
     if (!process.env.EMAILJS_PUBLIC_KEY) {
@@ -53,19 +54,33 @@ app.post('/api/send-email', async (req, res) => {
     if (!process.env.EMAILJS_TEMPLATE_ID) {
       throw new Error('EmailJS template ID is not set');
     }
+    if (!process.env.EMAILJS_PRIVATE_KEY) {
+      throw new Error('EmailJS private key is not set');
+    }
 
-    const response = await emailjs.send(
-      process.env.EMAILJS_SERVICE_ID,
-      process.env.EMAILJS_TEMPLATE_ID,
-      templateParams,
-      {
-        publicKey: process.env.EMAILJS_PUBLIC_KEY,
-        privateKey: process.env.EMAILJS_PRIVATE_KEY
-      }
-    );
-
-    console.log('Email sent successfully:', response);
-    res.json({ success: true, response });
+    try {
+      const response = await emailjs.send(
+        process.env.EMAILJS_SERVICE_ID,
+        process.env.EMAILJS_TEMPLATE_ID,
+        templateParams,
+        {
+          publicKey: process.env.EMAILJS_PUBLIC_KEY,
+          privateKey: process.env.EMAILJS_PRIVATE_KEY
+        }
+      );
+      console.log('Email sent successfully:', response);
+      res.json({ success: true, response });
+    } catch (emailError) {
+      console.error('EmailJS send error:', {
+        message: emailError.message,
+        name: emailError.name,
+        code: emailError.code,
+        text: emailError.text,
+        response: emailError.response,
+        data: emailError.data
+      });
+      throw emailError;
+    }
   } catch (error) {
     console.error('Email sending failed. Full error:', {
       message: error.message,
