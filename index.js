@@ -1,16 +1,10 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const emailjs = require('@emailjs/nodejs').default;
+const emailjs = require('@emailjs/nodejs');
 
 const app = express();
 const port = process.env.PORT || 10000;
-
-// Initialize EmailJS with your public key
-emailjs.init({
-  publicKey: process.env.EMAILJS_PUBLIC_KEY,
-  privateKey: process.env.EMAILJS_PRIVATE_KEY // Use private key for server-side
-});
 
 // Log environment variables (excluding sensitive values)
 console.log('Environment Check:', {
@@ -63,7 +57,11 @@ app.post('/api/send-email', async (req, res) => {
     const response = await emailjs.send(
       process.env.EMAILJS_SERVICE_ID,
       process.env.EMAILJS_TEMPLATE_ID,
-      templateParams
+      templateParams,
+      {
+        publicKey: process.env.EMAILJS_PUBLIC_KEY,
+        privateKey: process.env.EMAILJS_PRIVATE_KEY
+      }
     );
 
     console.log('Email sent successfully:', response);
@@ -88,7 +86,8 @@ app.post('/api/send-email', async (req, res) => {
         env: {
           hasPublicKey: !!process.env.EMAILJS_PUBLIC_KEY,
           hasServiceId: !!process.env.EMAILJS_SERVICE_ID,
-          hasTemplateId: !!process.env.EMAILJS_TEMPLATE_ID
+          hasTemplateId: !!process.env.EMAILJS_TEMPLATE_ID,
+          hasPrivateKey: !!process.env.EMAILJS_PRIVATE_KEY
         }
       }
     });
