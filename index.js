@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const { EmailJSResponseStatus } = require('@emailjs/browser');
 const emailjs = require('@emailjs/nodejs');
 
 const app = express();
@@ -9,6 +10,7 @@ const port = process.env.PORT || 10000; // Updated to use Render's default port 
 // Initialize EmailJS with your public key
 emailjs.init({
   publicKey: process.env.EMAILJS_PUBLIC_KEY,
+  privateKey: process.env.EMAILJS_PUBLIC_KEY // For Node.js, we use the public key as private key
 });
 
 // Log environment variables (excluding sensitive values)
@@ -62,7 +64,11 @@ app.post('/api/send-email', async (req, res) => {
     const response = await emailjs.send(
       process.env.EMAILJS_SERVICE_ID,
       process.env.EMAILJS_TEMPLATE_ID,
-      templateParams
+      templateParams,
+      {
+        publicKey: process.env.EMAILJS_PUBLIC_KEY,
+        privateKey: process.env.EMAILJS_PUBLIC_KEY // For Node.js, we use the public key as private key
+      }
     );
 
     console.log('Email sent successfully:', response);
