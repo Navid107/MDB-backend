@@ -1,18 +1,26 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const emailjs = require('@emailjs/nodejs');
+const nodemailer = require('nodemailer');
 
 const app = express();
 const port = process.env.PORT || 10000;
 
-// Log environment variables (excluding sensitive values)
+// Create mail transporter
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_APP_PASSWORD // This should be an app-specific password
+  }
+});
+
+// Log environment check (excluding sensitive values)
 console.log('Environment Check:', {
   PORT: process.env.PORT,
-  EMAILJS_PUBLIC_KEY: process.env.EMAILJS_PUBLIC_KEY ? 'Set' : 'Not Set',
-  EMAILJS_SERVICE_ID: process.env.EMAILJS_SERVICE_ID ? 'Set' : 'Not Set',
-  EMAILJS_TEMPLATE_ID: process.env.EMAILJS_TEMPLATE_ID ? 'Set' : 'Not Set',
-  EMAILJS_DEFAULT_REPLY_TO: process.env.EMAILJS_DEFAULT_REPLY_TO ? 'Set' : 'Not Set'
+  EMAIL_USER: process.env.EMAIL_USER ? 'Set' : 'Not Set',
+  EMAIL_APP_PASSWORD: process.env.EMAIL_APP_PASSWORD ? 'Set' : 'Not Set',
+  EMAIL_TO: process.env.EMAIL_TO ? 'Set' : 'Not Set'
 });
 
 // Middleware
@@ -24,86 +32,75 @@ app.post('/api/send-email', async (req, res) => {
   try {
     const { name, email, phone, address, message } = req.body;
 
-    // Log the incoming request
-    console.log('Received request body:', req.body);
+    // Log the incoming request (excluding sensitive data)
+    console.log('Received request from:', name);
 
-    const templateParams = {
-      to_name: "Maine Drain Busters",
-      from_name: name,
-      from_email: email || 'No email provided',
-      from_phone: phone || 'No phone provided',
-      from_address: address || 'No address provided',
-      message: message,
-      reply_to: email || process.env.EMAILJS_DEFAULT_REPLY_TO,
+    // Validate required fields
+    if (!name || !email || !message) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields',
+        details: { required: ['name', 'email', 'message'] }
+      });
+    }
+
+    // Create email content
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: process.env.EMAIL_TO,
+      replyTo: email,
+      subject: `New Contact Form Submission from ${name}`,
+      text: `
+Name: ${name}
+Email: ${email}
+Phone: ${phone || 'Not provided'}
+Address: ${address || 'Not provided'}
+
+Message:
+${message}
+      `,
+      html: `
+<h2>New Contact Form Submission</h2>
+<p><strong>Name:</strong> ${name}</p>
+<p><strong>Email:</strong> ${email}</p>
+<p><strong>Phone:</strong> ${phone || 'Not provided'}</p>
+<p><strong>Address:</strong> ${address || 'Not provided'}</p>
+<h3>Message:</h3>
+<p>${message.replace(/\n/g, '<br>')}</p>
+      `
     };
 
-    console.log('Attempting to send email with params:', templateParams);
-    console.log('Using EmailJS config:', {
-      serviceId: process.env.EMAILJS_SERVICE_ID,
-      templateId: process.env.EMAILJS_TEMPLATE_ID,
-      publicKey: process.env.EMAILJS_PUBLIC_KEY ? 'Set' : 'Not Set',
-      privateKey: process.env.EMAILJS_PRIVATE_KEY ? 'Set' : 'Not Set'
+    // Log attempt (excluding sensitive data)
+    console.log('Attempting to send email to:', process.env.EMAIL_TO);
+
+    // Send email
+    const info = await transporter.sendMail(mailOptions);
+
+    // Log success
+    console.log('Email sent successfully:', info.messageId);
+
+    // Send success response
+    res.json({
+      success: true,
+      messageId: info.messageId
     });
 
-    if (!process.env.EMAILJS_PUBLIC_KEY) {
-      throw new Error('EmailJS public key is not set');
-    }
-    if (!process.env.EMAILJS_SERVICE_ID) {
-      throw new Error('EmailJS service ID is not set');
-    }
-    if (!process.env.EMAILJS_TEMPLATE_ID) {
-      throw new Error('EmailJS template ID is not set');
-    }
-    if (!process.env.EMAILJS_PRIVATE_KEY) {
-      throw new Error('EmailJS private key is not set');
-    }
-
-    try {
-      const response = await emailjs.send(
-        process.env.EMAILJS_SERVICE_ID,
-        process.env.EMAILJS_TEMPLATE_ID,
-        templateParams,
-        {
-          publicKey: process.env.EMAILJS_PUBLIC_KEY,
-          privateKey: process.env.EMAILJS_PRIVATE_KEY
-        }
-      );
-      console.log('Email sent successfully:', response);
-      res.json({ success: true, response });
-    } catch (emailError) {
-      console.error('EmailJS send error:', {
-        message: emailError.message,
-        name: emailError.name,
-        code: emailError.code,
-        text: emailError.text,
-        response: emailError.response,
-        data: emailError.data
-      });
-      throw emailError;
-    }
   } catch (error) {
-    console.error('Email sending failed. Full error:', {
-      message: error.message,
-      stack: error.stack,
+    // Log error (safely)
+    console.error('Email sending failed:', {
       name: error.name,
-      code: error.code,
-      response: error.response,
-      data: error.data
+      message: error.message,
+      code: error.code
     });
-    res.status(500).json({ 
-      success: false, 
-      error: error.message,
+
+    // Send error response
+    res.status(500).json({
+      success: false,
+      error: 'Failed to send email',
       details: {
         name: error.name,
-        code: error.code,
-        response: error.response,
-        data: error.data,
-        env: {
-          hasPublicKey: !!process.env.EMAILJS_PUBLIC_KEY,
-          hasServiceId: !!process.env.EMAILJS_SERVICE_ID,
-          hasTemplateId: !!process.env.EMAILJS_TEMPLATE_ID,
-          hasPrivateKey: !!process.env.EMAILJS_PRIVATE_KEY
-        }
+        message: error.message,
+        code: error.code
       }
     });
   }
@@ -111,9 +108,13 @@ app.post('/api/send-email', async (req, res) => {
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok' });
+  res.json({ 
+    status: 'ok',
+    emailServiceReady: !!process.env.EMAIL_USER && !!process.env.EMAIL_APP_PASSWORD
+  });
 });
 
+// Start server
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 }); 
