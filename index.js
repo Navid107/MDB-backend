@@ -11,6 +11,15 @@ emailjs.init({
   publicKey: process.env.EMAILJS_PUBLIC_KEY,
 });
 
+// Log environment variables (excluding sensitive values)
+console.log('Environment Check:', {
+  PORT: process.env.PORT,
+  EMAILJS_PUBLIC_KEY: process.env.EMAILJS_PUBLIC_KEY ? 'Set' : 'Not Set',
+  EMAILJS_SERVICE_ID: process.env.EMAILJS_SERVICE_ID ? 'Set' : 'Not Set',
+  EMAILJS_TEMPLATE_ID: process.env.EMAILJS_TEMPLATE_ID ? 'Set' : 'Not Set',
+  EMAILJS_DEFAULT_REPLY_TO: process.env.EMAILJS_DEFAULT_REPLY_TO ? 'Set' : 'Not Set'
+});
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -19,6 +28,9 @@ app.use(express.json());
 app.post('/api/send-email', async (req, res) => {
   try {
     const { name, email, phone, address, message } = req.body;
+
+    // Log the incoming request
+    console.log('Received request body:', req.body);
 
     const templateParams = {
       to_name: "Maine Drain Busters",
@@ -37,6 +49,16 @@ app.post('/api/send-email', async (req, res) => {
       publicKey: process.env.EMAILJS_PUBLIC_KEY ? 'Set' : 'Not Set'
     });
 
+    if (!process.env.EMAILJS_PUBLIC_KEY) {
+      throw new Error('EmailJS public key is not set');
+    }
+    if (!process.env.EMAILJS_SERVICE_ID) {
+      throw new Error('EmailJS service ID is not set');
+    }
+    if (!process.env.EMAILJS_TEMPLATE_ID) {
+      throw new Error('EmailJS template ID is not set');
+    }
+
     const response = await emailjs.send(
       process.env.EMAILJS_SERVICE_ID,
       process.env.EMAILJS_TEMPLATE_ID,
@@ -46,8 +68,23 @@ app.post('/api/send-email', async (req, res) => {
     console.log('Email sent successfully:', response);
     res.json({ success: true, response });
   } catch (error) {
-    console.error('Email sending failed:', error);
-    res.status(500).json({ success: false, error: error.message });
+    console.error('Email sending failed. Full error:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+    res.status(500).json({ 
+      success: false, 
+      error: error.message,
+      details: {
+        name: error.name,
+        env: {
+          hasPublicKey: !!process.env.EMAILJS_PUBLIC_KEY,
+          hasServiceId: !!process.env.EMAILJS_SERVICE_ID,
+          hasTemplateId: !!process.env.EMAILJS_TEMPLATE_ID
+        }
+      }
+    });
   }
 });
 
