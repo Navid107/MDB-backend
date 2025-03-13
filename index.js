@@ -18,24 +18,42 @@ const PORT = process.env.PORT || 3001;
 // API Routes
 app.post('/api/prepare-email', async (req, res) => {
   try {
-    const { name, email, phone, message, subject } = req.body;
+    const { name, email, phone, message, subject, address, discount_claimed } = req.body;
     
-    // Instead of sending the email directly, return the configuration
-    // that the frontend will use with EmailJS
-    res.status(200).json({ 
-      success: true,
-      emailjsConfig: {
-        serviceId: process.env.EMAILJS_SERVICE_ID,
-        templateId: process.env.EMAILJS_TEMPLATE_ID,
-        publicKey: process.env.EMAILJS_PUBLIC_KEY,
+    // Create configurations for both email templates
+    const emailConfigs = {
+      // Configuration for service provider notification
+      serviceProvider: {
+        serviceId: process.env.EMAILJS_SERVICE_PROVIDER_SERVICE_ID,
+        templateId: process.env.EMAILJS_SERVICE_PROVIDER_TEMPLATE_ID,
+        publicKey: process.env.EMAILJS_SERVICE_PROVIDER_PUBLIC_KEY,
         templateParams: {
-          from_name: name,
-          reply_to: email,
-          phone: phone || 'Not provided',
-          message: message,
-          subject: subject || 'New message from Maine Drain Busters website'
+          client_name: name,
+          client_email: email,
+          client_phone: phone || 'Not provided',
+          service_details: message,
+          subject: subject || 'New Service Request',
+          address: address || 'Not provided',
+          discount_claimed: discount_claimed || ''
+        }
+      },
+      // Configuration for client confirmation
+      client: {
+        serviceId: process.env.EMAILJS_SERVICE_PROVIDER_SERVICE_ID,
+        templateId: process.env.EMAILJS_CLIENT_TEMPLATE_ID,
+        publicKey: process.env.EMAILJS_SERVICE_PROVIDER_PUBLIC_KEY,
+        templateParams: {
+          client_name: name,
+          subject: subject || 'Service Request',
+          service_details: message
         }
       }
+    };
+
+    // Return both configurations
+    res.status(200).json({ 
+      success: true,
+      emailConfigs
     });
   } catch (error) {
     console.error('Error preparing email data:', error.message);
@@ -50,10 +68,17 @@ app.post('/api/prepare-email', async (req, res) => {
 // Return EmailJS configuration for direct frontend use
 app.get('/api/emailjs-config', (req, res) => {
   res.status(200).json({
-    serviceId: process.env.EMAILJS_SERVICE_ID,
-    templateId: process.env.EMAILJS_TEMPLATE_ID,
-    publicKey: process.env.EMAILJS_PUBLIC_KEY,
-    defaultReplyTo: process.env.EMAILJS_DEFAULT_REPLY_TO
+    serviceProvider: {
+      serviceId: process.env.EMAILJS_SERVICE_PROVIDER_SERVICE_ID,
+      templateId: process.env.EMAILJS_SERVICE_PROVIDER_TEMPLATE_ID,
+      publicKey: process.env.EMAILJS_SERVICE_PROVIDER_PUBLIC_KEY,
+      defaultReplyTo: process.env.EMAILJS_SERVICE_PROVIDER_DEFAULT_REPLY_TO
+    },
+    client: {
+      serviceId: process.env.EMAILJS_SERVICE_PROVIDER_SERVICE_ID,
+      templateId: process.env.EMAILJS_CLIENT_TEMPLATE_ID,
+      publicKey: process.env.EMAILJS_SERVICE_PROVIDER_PUBLIC_KEY
+    }
   });
 });
 

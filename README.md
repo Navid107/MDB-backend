@@ -4,11 +4,15 @@ This is a Node.js backend server that works with EmailJS for handling email form
 
 ## How It Works
 
-This backend serves as a proxy for EmailJS:
+This backend serves as a proxy for EmailJS and supports sending two types of emails:
 
-1. The backend securely stores your EmailJS credentials
-2. When a form is submitted, the frontend requests the EmailJS configuration from the backend
-3. The frontend uses this configuration to send emails directly via EmailJS's browser-based API
+1. Service provider notification - Notifies your business about new service requests
+2. Client confirmation - Sends a confirmation email to the customer
+
+The backend:
+1. Securely stores your EmailJS credentials
+2. When a form is submitted, it prepares data for both email templates
+3. The frontend uses this data to send emails directly via EmailJS's browser-based API
 4. This approach keeps your EmailJS credentials secure while working with EmailJS's browser-only limitation
 
 ## Setup Instructions
@@ -24,10 +28,11 @@ This backend serves as a proxy for EmailJS:
    Create a `.env` file in the root directory with the following variables:
    ```
    PORT=3001
-   EMAILJS_PUBLIC_KEY=your-public-key
-   EMAILJS_SERVICE_ID=your-service-id
-   EMAILJS_TEMPLATE_ID=your-template-id
-   EMAILJS_DEFAULT_REPLY_TO=support@MaineDrainBusters.com
+   EMAILJS_SERVICE_PROVIDER_PUBLIC_KEY=your-public-key
+   EMAILJS_SERVICE_PROVIDER_SERVICE_ID=your-service-id
+   EMAILJS_SERVICE_PROVIDER_TEMPLATE_ID=your-template-id
+   EMAILJS_SERVICE_PROVIDER_DEFAULT_REPLY_TO=support@MaineDrainBusters.com
+   EMAILJS_CLIENT_TEMPLATE_ID=your-client-template-id
    ```
 
 3. **Start the development server**
@@ -50,10 +55,11 @@ You can deploy this backend server to several platforms:
    ```
 4. Set environment variables in Heroku Dashboard or via CLI:
    ```
-   heroku config:set EMAILJS_PUBLIC_KEY=your-public-key
-   heroku config:set EMAILJS_SERVICE_ID=your-service-id
-   heroku config:set EMAILJS_TEMPLATE_ID=your-template-id
-   heroku config:set EMAILJS_DEFAULT_REPLY_TO=support@MaineDrainBusters.com
+   heroku config:set EMAILJS_SERVICE_PROVIDER_PUBLIC_KEY=your-public-key
+   heroku config:set EMAILJS_SERVICE_PROVIDER_SERVICE_ID=your-service-id
+   heroku config:set EMAILJS_SERVICE_PROVIDER_TEMPLATE_ID=your-template-id
+   heroku config:set EMAILJS_SERVICE_PROVIDER_DEFAULT_REPLY_TO=support@MaineDrainBusters.com
+   heroku config:set EMAILJS_CLIENT_TEMPLATE_ID=your-client-template-id
    ```
 
 #### Option 2: Vercel
@@ -74,7 +80,7 @@ You can deploy this backend server to several platforms:
 ### Get EmailJS Configuration
 - **URL**: `/api/emailjs-config`
 - **Method**: `GET`
-- **Response**: JSON with EmailJS configuration parameters
+- **Response**: JSON with EmailJS configuration parameters for both service provider and client templates
 
 ### Prepare Email Data
 - **URL**: `/api/prepare-email`
@@ -84,12 +90,14 @@ You can deploy this backend server to several platforms:
   {
     "name": "John Doe",
     "email": "john@example.com",
-    "phone": "555-123-4567", // Optional
+    "phone": "555-123-4567",
     "message": "I need help with my plumbing",
-    "subject": "Plumbing Assistance" // Optional
+    "subject": "Plumbing Assistance",
+    "address": "123 Main St, Portland, ME",
+    "discount_claimed": "10% New Customer Discount"
   }
   ```
-- **Response**: JSON with EmailJS configuration and template parameters
+- **Response**: JSON with EmailJS configuration and template parameters for both email types
 
 ### Health Check
 - **URL**: `/api/health`
@@ -98,7 +106,7 @@ You can deploy this backend server to several platforms:
 
 ## Front-end Integration
 
-To integrate with your front-end React application, use EmailJS directly on the client side:
+To integrate with your front-end React application, use EmailJS directly on the client side to send both emails:
 
 ```javascript
 import emailjs from '@emailjs/browser';
@@ -112,46 +120,45 @@ const ContactForm = () => {
       email: e.target.email.value,
       phone: e.target.phone?.value,
       message: e.target.message.value,
-      subject: 'New Contact Form Submission'
+      subject: 'Service Request',
+      address: e.target.address?.value,
+      discount_claimed: e.target.discount?.value
     };
     
     try {
-      // Option 1: Get EmailJS config from server and send directly
-      const configResponse = await fetch('https://your-backend-url.com/api/emailjs-config');
-      const config = await configResponse.json();
-      
-      // Send email directly using EmailJS
-      const result = await emailjs.send(
-        config.serviceId,
-        config.templateId,
-        {
-          from_name: formData.name,
-          reply_to: formData.email,
-          phone: formData.phone || 'Not provided',
-          message: formData.message,
-          subject: formData.subject
+      // Get email configs from server for both emails
+      const response = await fetch('https://your-backend-url.com/api/prepare-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        config.publicKey
-      );
+        body: JSON.stringify(formData),
+      });
       
-      // Show success message
+      const data = await response.json();
       
-      // Option 2: Use the prepare-email endpoint
-      // const response = await fetch('https://your-backend-url.com/api/prepare-email', {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //   },
-      //   body: JSON.stringify(formData),
-      // });
-      // 
-      // const data = await response.json();
-      // 
-      // if (data.success) {
-      //   const { serviceId, templateId, publicKey, templateParams } = data.emailjsConfig;
-      //   await emailjs.send(serviceId, templateId, templateParams, publicKey);
-      //   // Show success message
-      // }
+      if (data.success) {
+        const { serviceProvider, client } = data.emailConfigs;
+        
+        // Send notification email to service provider
+        await emailjs.send(
+          serviceProvider.serviceId,
+          serviceProvider.templateId,
+          serviceProvider.templateParams,
+          serviceProvider.publicKey
+        );
+        
+        // Send confirmation email to client
+        await emailjs.send(
+          client.serviceId,
+          client.templateId,
+          client.templateParams,
+          client.publicKey
+        );
+        
+        // Show success message
+        console.log('Both emails sent successfully!');
+      }
       
     } catch (error) {
       console.error('Error sending form:', error);
