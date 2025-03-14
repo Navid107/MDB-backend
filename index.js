@@ -8,8 +8,14 @@ dotenv.config();
 // Create Express app
 const app = express();
 
+const corsOptions = {
+  origin: 'https://your-frontend-domain.com', // Replace with your frontend URL
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Port configuration
@@ -18,15 +24,15 @@ const PORT = process.env.PORT || 3001;
 // API Routes
 app.post('/api/prepare-email', async (req, res) => {
   try {
-    const { name, email, phone, message, subject, address, discount_claimed } = req.body;
+    const { name, email, phone, message, address, discount_claimed } = req.body;
     
-        // Validate required fields
-        if (!name || !email || !message) {
-          return res.status(400).json({ 
-            success: false, 
-            message: 'Missing required fields: name, email, message' 
-          });
-        }
+    // Validate required fields
+    if (!name || !email || !message) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Missing required fields: name, email, message' 
+      });
+    }
     // Create configurations for both email templates
     const emailConfigs = {
         serviceProvider: {
