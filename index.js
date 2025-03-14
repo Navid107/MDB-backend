@@ -1,5 +1,4 @@
 const express = require('express');
-const cors = require('cors');
 const dotenv = require('dotenv');
 const emailjs = require('@emailjs/nodejs');
 
@@ -9,24 +8,11 @@ dotenv.config();
 // Create Express app
 const app = express();
 
-// CORS Configuration
-const corsOptions = {
-  origin: process.env.WEBSITE_URL || 'https://mainedrainbusters.com', // Use environment variable or fallback
-  methods: ['GET', 'POST'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
-};
-
-app.use(cors(corsOptions));
-
 // Middleware
 app.use(express.json());
 
 // Port configuration
 const PORT = process.env.PORT || 3001;
-
-// Handle preflight requests
-app.options('/api/prepare-email', cors(corsOptions));
 
 // API Routes
 
