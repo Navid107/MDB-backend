@@ -20,22 +20,27 @@ app.post('/api/prepare-email', async (req, res) => {
   try {
     const { name, email, phone, message, subject, address, discount_claimed } = req.body;
     
+        // Validate required fields
+        if (!name || !email || !message) {
+          return res.status(400).json({ 
+            success: false, 
+            message: 'Missing required fields: name, email, message' 
+          });
+        }
     // Create configurations for both email templates
     const emailConfigs = {
-      // Configuration for service provider notification
-      serviceProvider: {
-        serviceId: process.env.EMAILJS_SERVICE_PROVIDER_SERVICE_ID,
-        templateId: process.env.EMAILJS_SERVICE_PROVIDER_TEMPLATE_ID,
-        publicKey: process.env.EMAILJS_SERVICE_PROVIDER_PUBLIC_KEY,
-        templateParams: {
-          client_name: name,
-          client_email: email,
-          client_phone: phone || 'Not provided',
-          service_details: message,
-          subject: subject || 'New Service Request',
-          address: address || 'Not provided',
-          discount_claimed: discount_claimed || ''
-        }
+        serviceProvider: {
+          serviceId: process.env.EMAILJS_SERVICE_PROVIDER_SERVICE_ID,
+          templateId: process.env.EMAILJS_SERVICE_PROVIDER_TEMPLATE_ID,
+          publicKey: process.env.EMAILJS_SERVICE_PROVIDER_PUBLIC_KEY,
+          templateParams: {
+            client_name: name,
+            client_email: email,
+            client_phone: phone || 'Not provided',
+            service_details: message,
+            address: address || 'Not provided',
+            discount_claimed: discount_claimed || 'No'
+          }
       },
       // Configuration for client confirmation
       client: {
@@ -45,7 +50,6 @@ app.post('/api/prepare-email', async (req, res) => {
         templateParams: {
           client_name: name,
           to_email: email,
-          subject: subject || 'Service Request',
           service_details: message
         }
       }
