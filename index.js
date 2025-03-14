@@ -11,10 +11,10 @@ const app = express();
 
 // CORS Configuration
 const corsOptions = {
-  origin: process.env.WEBSITE_URL, // Replace with your frontend domain
-  methods: ['GET', 'POST'], // Allow only GET and POST requests
-  allowedHeaders: ['Content-Type', 'Authorization'], // Allow specific headers
-  credentials: true // Allow cookies and credentials (if needed)
+  origin: process.env.WEBSITE_URL || 'https://mainedrainbusters.com', // Use environment variable or fallback
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
 };
 
 app.use(cors(corsOptions));
