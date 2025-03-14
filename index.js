@@ -9,7 +9,7 @@ dotenv.config();
 const app = express();
 
 const corsOptions = {
-  origin: 'https://your-frontend-domain.com', // Replace with your frontend URL
+  origin: process.env.WEBSITE_URL, // Replace with your frontend URL
   methods: ['GET', 'POST'],
   allowedHeaders: ['Content-Type', 'Authorization']
 };
