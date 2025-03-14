@@ -99,6 +99,40 @@ You can deploy this backend server to several platforms:
   ```
 - **Response**: JSON with EmailJS configuration and template parameters for both email types
 
+#### Response example:
+```json
+{
+  "success": true,
+  "emailConfigs": {
+    "serviceProvider": {
+      "serviceId": "service_nm8ork9",
+      "templateId": "template_al86nng",
+      "publicKey": "msqtzpkqSBGbI_lyv",
+      "templateParams": {
+        "client_name": "John Doe",
+        "client_email": "john@example.com",
+        "client_phone": "555-123-4567",
+        "service_details": "I need help with my plumbing",
+        "subject": "Plumbing Assistance",
+        "address": "123 Main St, Portland, ME",
+        "discount_claimed": "10% New Customer Discount"
+      }
+    },
+    "client": {
+      "serviceId": "service_nm8ork9",
+      "templateId": "template_5260iiq",
+      "publicKey": "msqtzpkqSBGbI_lyv",
+      "templateParams": {
+        "client_name": "John Doe",
+        "to_email": "john@example.com",
+        "subject": "Plumbing Assistance",
+        "service_details": "I need help with my plumbing"
+      }
+    }
+  }
+}
+```
+
 ### Health Check
 - **URL**: `/api/health`
 - **Method**: `GET`

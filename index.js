@@ -44,6 +44,7 @@ app.post('/api/prepare-email', async (req, res) => {
         publicKey: process.env.EMAILJS_SERVICE_PROVIDER_PUBLIC_KEY,
         templateParams: {
           client_name: name,
+          to_email: email,
           subject: subject || 'Service Request',
           service_details: message
         }
