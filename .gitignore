@@ -5,7 +5,9 @@ node_modules/
 .env
 .env.local
 .env.*.local
-
+required.txt
+email.txt
+e2b47_056cb_be3c0db717e187f827a012738adf858b
 # Logs
 logs
 *.log
