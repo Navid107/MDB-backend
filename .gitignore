@@ -9,7 +9,7 @@ required.txt
 email.txt
 e2b47_056cb_be3c0db717e187f827a012738adf858b
 curl-commands.txt
-.html
+*.html
 # Logs
 logs
 *.log
