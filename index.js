@@ -24,7 +24,7 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Trust proxy with specific configuration for security
-app.set('trust proxy', 1);
+app.set('trust proxy', ['loopback', 'linklocal', 'uniquelocal']);
 
 // Initialize DOMPurify with JSDOM
 const window = new JSDOM('').window;
@@ -42,6 +42,8 @@ const emailLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  skipSuccessfulRequests: false,
+  skipFailedRequests: false,
 });
 
 // General rate limiter
@@ -50,6 +52,8 @@ const generalLimiter = rateLimit({
   max: 100, // limit each IP to 100 requests per windowMs
   standardHeaders: true,
   legacyHeaders: false,
+  skipSuccessfulRequests: false,
+  skipFailedRequests: false,
 });
 
 app.use(generalLimiter);
