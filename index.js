@@ -23,7 +23,8 @@ if (missing.length > 0) {
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.set('trust proxy', true);
+// Trust proxy with specific configuration for security
+app.set('trust proxy', 1);
 
 // Initialize DOMPurify with JSDOM
 const window = new JSDOM('').window;
