@@ -14,7 +14,12 @@
     "@emailjs/nodejs": "^5.0.2",
     "axios": "^1.8.2",
     "body-parser": "^1.20.3",
+    "dompurify": "^3.2.7",
+    "express-rate-limit": "^8.1.0",
+    "express-validator": "^7.2.1",
+    "helmet": "^8.1.0",
     "imap": "^0.8.19",
+    "jsdom": "^27.0.0",
     "mailparser": "^3.7.2",
     "node-imap": "^0.9.6",
     "nodemailer": "^6.10.0"
