@@ -102,7 +102,13 @@ const transporter = nodemailer.createTransport({
   auth: {
     user: process.env.SMTP_USER, // Authenticated sending user
     pass: process.env.SMTP_PASS
-  }
+  },
+  connectionTimeout: 60000, // 60 seconds
+  greetingTimeout: 30000, // 30 seconds
+  socketTimeout: 60000, // 60 seconds
+  pool: true,
+  maxConnections: 5,
+  maxMessages: 100
 });
 
 
