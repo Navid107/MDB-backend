@@ -65,8 +65,7 @@ app.use(cors({
       if (!origin) return callback(null, true);
       
       // Allow mainedrainbusters.com and all its paths
-      if (origin === process.env.WEBSITE_URL || 
-          origin === process.env.SUPPORT_URL) {
+      if (origin === process.env.WEBSITE_URL) {
         return callback(null, true);
       }
       
@@ -74,7 +73,8 @@ app.use(cors({
       callback(new Error('Not allowed by CORS'));
     },
     methods: ['GET', 'POST', 'OPTIONS'],
-    credentials: true
+    credentials: true,
+    optionsSuccessStatus: 200 
   }));
 
 // Set request size limits with proper error handling
