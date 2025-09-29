@@ -74,7 +74,6 @@ app.use(cors({
     },
     methods: ['GET', 'POST', 'OPTIONS'],
     credentials: true,
-    optionsSuccessStatus: 200 
   }));
 
 // Set request size limits with proper error handling
