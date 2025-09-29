@@ -1,5 +1,5 @@
 const express = require('express');
-const nodemailer = require('nodemailer');
+// DEACTIVATED: const nodemailer = require('nodemailer'); // Using Azure Microsoft Graph instead
 const dotenv = require('dotenv');
 const cors = require('cors');
 const bodyParser = require('body-parser');
@@ -9,10 +9,16 @@ const { body, validationResult } = require('express-validator');
 const DOMPurify = require('dompurify');
 const { JSDOM } = require('jsdom');
 
+// Azure Microsoft Graph imports
+const { ConfidentialClientApplication } = require("@azure/msal-node");
+const { Client } = require("@microsoft/microsoft-graph-client");
+require("isomorphic-fetch");
+
 dotenv.config();
 
 // Validate required environment variables
-const requiredEnvVars = ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASS', 'WEBSITE_URL', 'SUPPORT_ACCOUNT'];
+// DEACTIVATED SMTP: const requiredEnvVars = ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASS', 'WEBSITE_URL', 'SUPPORT_ACCOUNT'];
+const requiredEnvVars = ['AZURE_CLIENT_ID', 'AZURE_TENANT_ID', 'AZURE_CLIENT_SECRET', 'WEBSITE_URL', 'SUPPORT_ACCOUNT'];
 const missing = requiredEnvVars.filter(env => !process.env[env]);
 
 if (missing.length > 0) {
@@ -104,19 +110,30 @@ const sanitizeInput = (input) => {
   return purify.sanitize(input, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
 };
 
-// Maine Drain Busters SMTP configuration
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST, // Your domain SMTP server
-  port: process.env.SMTP_PORT,
-  secure: process.env.SMTP_SECURE,
+// DEACTIVATED: Maine Drain Busters SMTP configuration
+// const transporter = nodemailer.createTransport({
+//   host: process.env.SMTP_HOST, // Your domain SMTP server
+//   port: process.env.SMTP_PORT,
+//   secure: process.env.SMTP_SECURE,
+//   auth: {
+//     user: process.env.SMTP_USER, // Authenticated sending user
+//     pass: process.env.SMTP_PASS
+//   },
+//   tls: {
+//     rejectUnauthorized: false,
+//   }
+// });
+
+// Azure Microsoft Graph configuration
+const msalConfig = {
   auth: {
-    user: process.env.SMTP_USER, // Authenticated sending user
-    pass: process.env.SMTP_PASS
+    clientId: process.env.AZURE_CLIENT_ID,
+    authority: `https://login.microsoftonline.com/${process.env.AZURE_TENANT_ID}`,
+    clientSecret: process.env.AZURE_CLIENT_SECRET,
   },
-  tls: {
-    rejectUnauthorized: false,
-  }
-});
+};
+
+const cca = new ConfidentialClientApplication(msalConfig);
 
 
 // Professional email template for company (service requests)
@@ -949,9 +966,6 @@ const createConfirmationEmail = ({ name, serviceType, phone, preferredDate, pref
                     <p>Call: <strong>(207) 409-9772</strong></p>
                 </div>
                 
-                <div class="no-reply-warning">
-                    ⚠️ DO NOT REPLY TO THIS EMAIL - THIS IS AN AUTOMATED MESSAGE
-                </div>
                 
                 <p style="text-align: center; margin-top: 20px;">Thank you for trusting Maine's premier plumbing professionals!</p>
             </div>
@@ -968,7 +982,35 @@ const createConfirmationEmail = ({ name, serviceType, phone, preferredDate, pref
 </html>`;
 };
 
-// Enhanced email sender function with improved error handling
+// DEACTIVATED: Enhanced email sender function with SMTP
+// async function sendEmail({ to, subject, content, isHTML = false, headers = {} }) {
+//   try {
+//     // Validate email address
+//     if (!validateEmail(to)) {
+//       throw new Error('Invalid email address');
+//     }
+//     const mailOptions = {
+//       from: `"Maine Drain Busters" <${process.env.SMTP_USER}>`, // Always from authenticated user
+//       to,
+//       subject: sanitizeInput(subject),
+//       html: isHTML ? content : undefined,
+//       text: isHTML ? undefined : content,
+//       headers: headers // Add custom headers
+//     };
+//     const info = await transporter.sendMail(mailOptions);
+//     return { success: true, messageId: info.messageId };
+//   } catch (error) {
+//     const errorId = Date.now().toString(36) + Math.random().toString(36).substr(2);
+//     console.error(`Email error [${errorId}]:`, {
+//       error: error.message,
+//       to: to.replace(/(.{3}).*(@.*)/, '$1***$2'), // Mask email in error logs
+//       timestamp: new Date().toISOString()
+//     });
+//     return { success: false, errorId };
+//   }
+// }
+
+// NEW: Enhanced email sender function using Azure Microsoft Graph
 async function sendEmail({ to, subject, content, isHTML = false, headers = {} }) {
   try {
     // Validate email address
@@ -976,18 +1018,61 @@ async function sendEmail({ to, subject, content, isHTML = false, headers = {} })
       throw new Error('Invalid email address');
     }
 
-    const mailOptions = {
-      from: `"Maine Drain Busters" <${process.env.SMTP_USER}>`, // Always from authenticated user
-      to,
-      subject: sanitizeInput(subject),
-      html: isHTML ? content : undefined,
-      text: isHTML ? undefined : content,
-      headers: headers // Add custom headers
+    // Get access token from Azure
+    const authResponse = await cca.acquireTokenByClientCredential({
+      scopes: ["https://graph.microsoft.com/.default"],
+    });
+
+    // Initialize Microsoft Graph client
+    const client = Client.init({
+      authProvider: (done) => {
+        done(null, authResponse.accessToken);
+        console.log('Access token acquired:', authResponse.accessToken);
+      },
+    });
+
+    // Prepare email message for Microsoft Graph
+    const message = {
+      message: {
+        subject: sanitizeInput(subject),
+        body: {
+          contentType: isHTML ? 'HTML' : 'Text',
+          content: content
+        },
+        toRecipients: [
+          {
+            emailAddress: {
+              address: to
+            }
+          }
+        ],
+        from: {
+          emailAddress: {
+            address: process.env.SUPPORT_ACCOUNT // Send from support account
+          }
+        }
+      },
+      saveToSentItems: true
     };
 
-    const info = await transporter.sendMail(mailOptions);
-    //console.log(`Email sent successfully to: ${to.replace(/(.{3}).*(@.*)/, '$1***$2')}`); // Partially mask email in logs
-    return { success: true, messageId: info.messageId };
+    // Add custom headers if provided (Microsoft Graph requires x- prefix)
+    if (Object.keys(headers).length > 0) {
+      // Microsoft Graph requires custom headers to start with x- or X-
+      const graphHeaders = Object.entries(headers).map(([key, value]) => ({
+        name: key.toLowerCase().startsWith("x-") ? key : `x-${key}`,
+        value: value
+      }));
+      message.message.internetMessageHeaders = graphHeaders;
+    } else {
+      // Remove the old header assignment
+      delete message.message.internetMessageHeaders;
+    }
+    // Remove the old header mapping code
+
+    // Send email using Microsoft Graph
+    const info = await client.api(`/users/${process.env.SUPPORT_ACCOUNT}/sendMail`).post(message);
+    
+    return { success: true, messageId: info.id || 'graph-sent' };
   } catch (error) {
     const errorId = Date.now().toString(36) + Math.random().toString(36).substr(2);
     console.error(`Email error [${errorId}]:`, {
@@ -1180,6 +1265,14 @@ app.post('/support-email', emailLimiter, supportRequestValidation, async (req, r
       subject: sanitizeInput(subject),
       message: sanitizeInput(message)
     };
+    // Debug: Log received data
+    console.log("Support request data received:", {
+      name: sanitizedData.name,
+      email: sanitizedData.email,
+      phone: sanitizedData.phone,
+      subject: sanitizedData.subject,
+      message: sanitizedData.message
+    });
 
     // Validate email for headers
     const safeReplyTo = validateEmail(sanitizedData.email) ? 
@@ -1340,9 +1433,6 @@ const createSupportConfirmation = ({ name, email, phone, subject, message, submi
             font-style: italic;
             color: #495057;
         }
-        .no-reply-warning {
-            background-color: #dc3545;
-            color: white;
             padding: 10px;
             text-align: center;
             border-radius: 4px 4px 0 0;
@@ -1438,9 +1528,6 @@ const createSupportConfirmation = ({ name, email, phone, subject, message, submi
                     <p>${message}</p>
                 </div>
                 
-                <div class="no-reply-warning">
-                    ⚠️ DO NOT REPLY TO THIS EMAIL - THIS IS AN AUTOMATED MESSAGE
-                </div>
             </div>
             
             <!-- Footer -->
