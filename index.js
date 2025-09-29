@@ -1027,7 +1027,6 @@ async function sendEmail({ to, subject, content, isHTML = false, headers = {} })
     const client = Client.init({
       authProvider: (done) => {
         done(null, authResponse.accessToken);
-        console.log('Access token acquired:', authResponse.accessToken);
       },
     });
 
@@ -1265,7 +1264,7 @@ app.post('/support-email', emailLimiter, supportRequestValidation, async (req, r
       subject: sanitizeInput(subject),
       message: sanitizeInput(message)
     };
-    // Debug: Log received data
+    /* Debug: Log received data
     console.log("Support request data received:", {
       name: sanitizedData.name,
       email: sanitizedData.email,
@@ -1273,7 +1272,7 @@ app.post('/support-email', emailLimiter, supportRequestValidation, async (req, r
       subject: sanitizedData.subject,
       message: sanitizedData.message
     });
-
+*/
     // Validate email for headers
     const safeReplyTo = validateEmail(sanitizedData.email) ? 
       `${validateName(sanitizedData.name)} <${sanitizedData.email}>` : undefined;
