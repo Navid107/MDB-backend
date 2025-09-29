@@ -42,8 +42,7 @@ const emailLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  skipSuccessfulRequests: false,
-  skipFailedRequests: false,
+
 });
 
 // General rate limiter
@@ -52,8 +51,7 @@ const generalLimiter = rateLimit({
   max: 100, // limit each IP to 100 requests per windowMs
   standardHeaders: true,
   legacyHeaders: false,
-  skipSuccessfulRequests: false,
-  skipFailedRequests: false,
+
 });
 
 app.use(generalLimiter);
@@ -115,6 +113,9 @@ const transporter = nodemailer.createTransport({
     user: process.env.SMTP_USER, // Authenticated sending user
     pass: process.env.SMTP_PASS
   },
+  tls: {
+    rejectUnauthorized: false,
+  }
 });
 
 
