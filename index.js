@@ -12,7 +12,7 @@ const { JSDOM } = require('jsdom');
 dotenv.config();
 
 // Validate required environment variables
-const requiredEnvVars = ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASS', 'WEBSITE_URL', 'SUPPORT_URL', 'SUPPORT_ACCOUNT'];
+const requiredEnvVars = ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASS', 'WEBSITE_URL', 'SUPPORT_ACCOUNT'];
 const missing = requiredEnvVars.filter(env => !process.env[env]);
 
 if (missing.length > 0) {
