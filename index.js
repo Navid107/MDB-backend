@@ -60,13 +60,22 @@ app.use(generalLimiter);
 
 // Middleware - Allow localhost for development
 app.use(cors({
-  origin: [
-    process.env.WEBSITE_URL,
-    process.env.SUPPORT_URL,
-  ],
-  methods: ['GET', 'POST', 'OPTIONS'],
-  credentials: true
-}));
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      
+      // Allow mainedrainbusters.com and all its paths
+      if (origin === process.env.WEBSITE_URL || 
+          origin === process.env.SUPPORT_URL) {
+        return callback(null, true);
+      }
+      
+      // Reject other origins
+      callback(new Error('Not allowed by CORS'));
+    },
+    methods: ['GET', 'POST', 'OPTIONS'],
+    credentials: true
+  }));
 
 // Set request size limits with proper error handling
 app.use(bodyParser.json({ 
