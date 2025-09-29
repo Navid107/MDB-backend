@@ -62,7 +62,7 @@ app.use(generalLimiter);
 app.use(cors({
   origin: [
     process.env.WEBSITE_URL,
-    process.env.SUPPORT_URL
+    process.env.SUPPORT_URL,
   ],
   methods: ['GET', 'POST', 'OPTIONS'],
   credentials: true
